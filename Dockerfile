@@ -1,6 +1,6 @@
 FROM microsoft/nanoserver
 
-MAINTAINER Burgy Benjamin <minidfx@gmail.com> & Romero Daniel <daniel.romero@baseclass.ch>
+MAINTAINER Wick <wickyorama@gmail.com>
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
