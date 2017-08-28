@@ -5,11 +5,14 @@ MAINTAINER Wick <wickyorama@gmail.com>
 SHELL ["powershell","-Command", "$ErrorActionPreference = 'Stop';"]
 
 ARG TEAMCITY_SERVER="<your server url>"
+ENV TEAMCITY_AGENT_SERVER ${TEAMCITY_SERVER}
 ENV BUILDAGENT "C:/buildAgent"
 ENV INSTALL "C:/Install"
 ENV SCRIPTS "C:/Scripts"
-ENV TEAMCITY_SERVER ${TEAMCITY_SERVER}
+ENV TEAMCITY_SERVER "<your server url>"
 ENV ChocolateyUseWindowsCompression 'false'
+
+
 
 RUN mkdir c:\install_logs;
 RUN Invoke-WebRequest http://download.microsoft.com/download/2/1/2/2122BA8F-7EA6-4784-9195-A8CFB7E7388E/StandaloneSDK/sdksetup.exe -OutFile "$env:TEMP\sdksetup.exe"; \
@@ -27,12 +30,6 @@ RUN Invoke-WebRequest "https://download.microsoft.com/download/9/B/B/9BB1309E-1A
 
 RUN New-Item -Path $Env:INSTALL -Type directory 
 RUN New-Item -Path $Env:SCRIPTS -Type directory 
-
-# Prepare application for waiting for java processes when the agent is started.
-COPY jre-8u144-windows-x64.tar.gz $INSTALL
-COPY ICSharpCode.SharpZipLib.dll $INSTALL
-COPY downloadJre.ps1 $INSTALL
-COPY runAgent.ps1 $SCRIPTS
 
 RUN [Environment]::SetEnvironmentVariable('PATH', $Env:ALLUSERSPROFILE + '\chocolatey\bin;' +  $env:PATH, [EnvironmentVariableTarget]::Machine);
 RUN [Environment]::SetEnvironmentVariable('PATH', 'C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6 Tools;' +  $env:PATH, [EnvironmentVariableTarget]::Machine);
@@ -59,20 +56,19 @@ RUN mv 'C:\MSBuild.Microsoft.VisualStudio.Web.targets.14.0.0.3\tools\VSToolsPath
 WORKDIR $INSTALL
 
 # Downloads dependencies
+# Prepare application for waiting for java processes when the agent is started.
+COPY jre-8u144-windows-x64.tar.gz $INSTALL
+COPY ICSharpCode.SharpZipLib.dll $INSTALL
+COPY downloadJre.ps1 $INSTALL
+
 RUN ./downloadJre.ps1 -Uri "http://download.oracle.com/otn-pub/java/jdk/8u144-b01/090f390dda5b47b9b721c7dfaa008135/jre-8u144-windows-x64.tar.gz" -OutDest "$Env:BUILDAGENT/jre"; \
-    Invoke-WebRequest "$Env:TEAMCITY_SERVER/update/buildAgent.zip" -OutFile "buildAgent.zip"; \
+    Invoke-WebRequest  "$Env:TEAMCITY_AGENT_SERVER/update/buildAgent.zip" -OutFile "buildAgent.zip"; \
     Expand-Archive buildAgent.zip -DestinationPath $Env:BUILDAGENT
 
 # Post job for preparing the teamcity agent
     RUN New-Item $Env:BUILDAGENT/work -ItemType directory -Force | Out-Null; \
-    $lines = (Get-Content $Env:BUILDAGENT/conf/buildAgent.dist.properties).replace('http://localhost:8111/', "$Env:TEAMCITY_SERVER"); \
-    $lines += 'MSBuildTools14.0_x86_Path=C\:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319'; \
-    $lines += 'MSBuildTools12.0_x86_Path=C\:\\Program Files (x86)\\MSBuild\\12.0\\Bin'; \
-    $lines += 'SdkToolsPath=C\:\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.6 Tools'; \
-    Set-Content $Env:BUILDAGENT/conf/buildAgent.dist.properties $lines; \
-    Rename-Item $Env:BUILDAGENT/conf/buildAgent.dist.properties $Env:BUILDAGENT/conf/buildAgent.properties; \
-    Rename-Item $Env:BUILDAGENT/conf conf.bak; \
-    New-Item $Env:BUILDAGENT/conf -ItemType directory -Force | Out-Null;
+    Rename-Item $Env:BUILDAGENT/conf conf.bak;
+RUN mkdir $Env:BUILDAGENT/conf;
 
 VOLUME $BUILDAGENT/conf
 VOLUME $BUILDAGENT/logs
@@ -85,5 +81,6 @@ RUN Remove-Item $Env:INSTALL -Recurse -Force
 
 EXPOSE 9090
 
+COPY runAgent.ps1 $SCRIPTS
 # Run the agent
 CMD & "$Env:SCRIPTS/runAgent.ps1"
