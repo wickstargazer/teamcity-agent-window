@@ -34,8 +34,8 @@ RUN New-Item -Path $Env:SCRIPTS -Type directory
 RUN [Environment]::SetEnvironmentVariable('PATH', $Env:ALLUSERSPROFILE + '\chocolatey\bin;' +  $env:PATH, [EnvironmentVariableTarget]::Machine);
 RUN [Environment]::SetEnvironmentVariable('PATH', 'C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6 Tools;' +  $env:PATH, [EnvironmentVariableTarget]::Machine);
 RUN [Environment]::SetEnvironmentVariable('SdkToolsPath', 'C:\\Program Files (x86)\\Microsoft SDKs\\Windows\\v10.0A\\bin\\NETFX 4.6 Tools', [EnvironmentVariableTarget]::Machine);
-RUN echo $env:Path;
-
+RUN [Environment]::SetEnvironmentVariable('MSBuildTools14.0_x86_Path', 'C:\\Program Files (x86)\\MSBuild\\14.0\\Bin', [EnvironmentVariableTarget]::Machine);
+RUN [Environment]::SetEnvironmentVariable('MSBuildTools14.0_x64_Path', 'C:\\Program Files (x86)\\MSBuild\\14.0\\Bin\\amd64', [EnvironmentVariableTarget]::Machine);
 #install ms-build
 #first install chocolatey
 
@@ -50,7 +50,11 @@ RUN choco install git.install -y --allow-empty-checksums -version 2.11.1;
 RUN nuget install MSBuild.Microsoft.VisualStudio.Web.targets -Version 14.0.0.3; \
 nuget install WebConfigTransformRunner -Version 1.0.0.1;
 
-RUN mv 'C:\MSBuild.Microsoft.VisualStudio.Web.targets.14.0.0.3\tools\VSToolsPath\*' 'C:\Program Files (x86)\MSBuild\12.0\'
+RUN cp -recurse 'C:\MSBuild.Microsoft.VisualStudio.Web.targets.14.0.0.3\tools\VSToolsPath\*' 'C:\Program Files (x86)\MSBuild\12.0\'
+RUN mkdir 'C:\Program Files (x86)\MSBuild\Microsoft\VisualStudio\v14.0\'
+RUN mkdir 'C:\Program Files (x86)\MSBuild\Microsoft\VisualStudio\v12.0\'
+RUN cp -recurse 'C:\Program Files (x86)\MSBuild\12.0\*' 'C:\Program Files (x86)\MSBuild\Microsoft\VisualStudio\v12.0\'
+RUN cp -recurse 'C:\Program Files (x86)\MSBuild\12.0\*' 'C:\Program Files (x86)\MSBuild\Microsoft\VisualStudio\v14.0\'
  
 # Move to install directory
 WORKDIR $INSTALL
